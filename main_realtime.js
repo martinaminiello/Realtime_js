@@ -126,3 +126,5 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
+//delete
