@@ -1,17 +1,10 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {getcredentials} from "/credentials.js"
 import { getDatabase, ref, update, get, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 // Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyBwUeamSsOHaeY_cyjdroVZTFEj8Q2z2YQ",
-  authDomain: "texwaller-4e4f5.firebaseapp.com",
-  databaseURL: "https://texwaller-4e4f5-default-rtdb.firebaseio.com",
-  projectId: "texwaller-4e4f5",
-  storageBucket: "texwaller-4e4f5.appspot.com",
-  messagingSenderId: "938867890235",
-  appId: "1:938867890235:web:11f9c20d190908ba19641e",
-  measurementId: "G-C0RTHZFPCW"
-};
+const firebaseConfig= getcredentials();
+console.log(firebaseConfig)
 
 const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
