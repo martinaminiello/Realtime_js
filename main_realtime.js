@@ -1,6 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import {getcredentials} from "/credentials.js"
-import { getDatabase, ref, update, get, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getDatabase, ref, set, get, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getFirestore, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getcredentials } from "/credentials.js";
 
 // Firebase configuration
 const firebaseConfig= getcredentials();
@@ -49,21 +50,29 @@ function buildFlexibleTree(nodes) {
 
     for (let i = 0; i < parts.length; i++) {
       const isFile = i === parts.length - 1 && 'content' in node;
-      let part = parts[i];
+      let part = sanitizeKey(parts[i]);
 
-      // Se è l'ultimo elemento (file), sanifica
       if (isFile) {
-        part = sanitizeKey(part);
         current[part] = {
           content: node.content,
-          "last-modifier": node.user_id
+          "last-modifier": node.user_id,
+          id: node.file_id
         };
       } else {
-        // Cartelle: sanificale anche loro per sicurezza
-        part = sanitizeKey(part);
         if (!current[part]) {
           current[part] = {};
         }
+
+        // Se è una cartella esplicitamente elencata nei metadati (senza contenuto),
+        // allora aggiungiamo l'id solo al primo passaggio
+        if (
+          i === parts.length - 1 &&      // ultima parte del path
+          !('content' in node) &&        // non è un file
+          !('id' in current[part])       // evitiamo sovrascritture
+        ) {
+          current[part].id = node.file_id;
+        }
+
         current = current[part];
       }
     }
@@ -71,6 +80,7 @@ function buildFlexibleTree(nodes) {
 
   return tree;
 }
+
 
 
 // Open project (create or update)
@@ -132,34 +142,33 @@ async function close_project(database, id, author) {
 }
 
 
-// Close project (remove current author or delete project)
-async function update_files(database, id, user_id, file_id) {
+// Update project 
+async function update_project(database, id, user_id, file_id, content, tree) {
   const projectPath = `active_projects/${id}`;
-  let currentAuthors = await fetch(database, projectPath, "current-authors");
 
-  if (!Array.isArray(currentAuthors)) {
-    currentAuthors = currentAuthors ? Object.values(currentAuthors) : [];
-  }
+  
+}
 
-  currentAuthors = currentAuthors.filter(a => a !== author);
+// DELETE project PERMANENTLY
+async function delete_project(database, id) {
+  const projectPath = `active_projects/${id}`;
+  await set(ref(database, projectPath), null);
+  console.log(`Project ${id} deleted from Realtime database.`);
 
-  if (currentAuthors.length === 0) {
-    await set(ref(database, projectPath), null); // Delete the project
-    console.log(`Project ${id} deleted from database.`);
-  } else {
-    await update(ref(database, projectPath), {
-      "current-authors": currentAuthors
-    });
-    console.log(`Removed author ${author} from current-authors.`);
-  }
+  
+  const firestore = getFirestore();
+  const docRef = doc(firestore, "projects", id);
+  await deleteDoc(docRef);
+  console.log(`Project ${id} deleted from Firestore.`);
+  
 }
 
 
-// Wait for DOM to be ready before binding buttons
 window.addEventListener("DOMContentLoaded", () => {
   const openBtn = document.getElementById("open");
   const closeBtn = document.getElementById("close");
   const updateBtn = document.getElementById("update");
+  const deleteBtn = document.getElementById("delete"); // FIXED: id corretto
 
   if (openBtn) {
     openBtn.addEventListener("click", async (event) => {
@@ -168,21 +177,12 @@ window.addEventListener("DOMContentLoaded", () => {
       const id = button.getAttribute("data-project-id");
       const title = button.getAttribute("data-title");
       const file_system = JSON.parse(button.getAttribute("data-tree"));
-      const tree = buildFlexibleTree(file_system);
-      console.log("Tree: ")
-      console.log(tree)
       const co_authors = JSON.parse(button.getAttribute("data-co-authors"));
+      const tree = buildFlexibleTree(file_system);
 
+      const projectData = { id, title, tree, "co-authors": co_authors };
 
-      const projectData = {
-        id,
-        title,
-        tree,
-        "co-authors": co_authors
-      };
-
-      console.log("projectData: ")
-      console.log(projectData)
+      console.log("projectData:", projectData);
       await open_project(database, id, author, projectData);
     });
   }
@@ -192,6 +192,7 @@ window.addEventListener("DOMContentLoaded", () => {
       const button = event.currentTarget;
       const author = button.getAttribute("data-author");
       const id = button.getAttribute("data-project-id");
+
       alert(`Closing project for ${author}...`);
       await close_project(database, id, author);
     });
@@ -204,11 +205,27 @@ window.addEventListener("DOMContentLoaded", () => {
       const file_id = button.getAttribute("data-file-id");
       const file_name = button.getAttribute("data-file-name");
       const id = button.getAttribute("data-project-id");
+      const file_system = JSON.parse(button.getAttribute("data-tree"));
+      const tree = buildFlexibleTree(file_system);
+
+      console.log("Tree:", tree);
       alert(`Updating project for ${user_id}...`);
-      await update_project(database, id, user_id, file_id,file_name);
+      await update_project(database, id, user_id, file_id, file_name, tree);
+    });
+  }
+
+  if (deleteBtn) {
+    deleteBtn.addEventListener("click", async (event) => {
+      const button = event.currentTarget;
+      const id = button.getAttribute("data-project-id");
+      const author = button.getAttribute("data-author");
+
+      alert(`Deleting project ${id}...`);
+      await delete_project(database, id, author);
     });
   }
 });
+
 
 
 
