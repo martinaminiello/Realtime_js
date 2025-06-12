@@ -10,15 +10,49 @@
 
 <button
   id="open"
-  data-project-id="pjs_543"
+  data-project-id="pjs_788"
   data-author="user_321"
   data-title="Esempio js"
   data-co-authors='{"0": "user_111", "1": "user_990"}'
-  data-tree='{"main_tex":{"content":"Contenuto file","last-modifier":"user_001"},"chapters":{"chapter1_tex":{"content":"Contenuto del capitolo1","last-modifier":"user_001"}}}'>
+  data-tree='[
+  {
+    "path": "index.html",
+    "user_id": "user_123",
+    "file_id": "file_001",
+    "content": "Contenuto"
+  },
+  {
+    "path": "src/app.js",
+    "user_id": "user_456",
+    "file_id": "file_002",
+    "content": "Contenuto"
+  },
+  {
+    "path": "src/components/Button.js",
+    "user_id": "user_123",
+    "file_id": "file_003",
+    "content": "Contenuto"
+  },
+  {
+    "path": "src/components/Header.js",
+    "user_id": "user_789",
+    "file_id": "file_004",
+    "content": "Contenuto"
+  },
+  {
+    "path": "styles/main.css",
+    "user_id": "user_456",
+    "file_id": "file_005",
+    "content": "Contenuto"
+  }
+]
+'>
   Open project
 </button>
 
-<button id="close" data-author="user_321" data-project-id="pjs_543">Close project</button>
+<button id="close" data-author="user_321" data-project-id="pjs_788">Close project</button>
+
+<button id="update" data-author="user_321" data-project-id="pjs_543" data-file-id="001" data-file-name="chapters/chpater2.tex">Update project</button>
 
 
 <script type="module" src="main_realtime.js"></script>
